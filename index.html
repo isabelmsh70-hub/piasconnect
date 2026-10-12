@@ -830,6 +830,18 @@ document.getElementById('sheet').addEventListener('touchend',e=>{
 });
 renderAll();
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}</script>
+<script>
+// Busca versiones nuevas al abrir la app y cada vez que vuelve a primer plano; si hay una, recarga.
+if("serviceWorker" in navigator){
+  var hadController=!!navigator.serviceWorker.controller, reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadController&&!reloaded){reloaded=true;location.reload();}});
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(reg){
+      reg.update();
+      document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")reg.update();});
+    }).catch(function(){});
+  });
+}
+</script>
 </body>
 </html>
