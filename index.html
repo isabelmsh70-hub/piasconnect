@@ -683,10 +683,15 @@ function renderCollegeSheet(cid){
   document.querySelectorAll('.mini-alum').forEach(el=>{ el.onclick=()=>openSheet(parseInt(el.dataset.pid)); });
 }
 
-let currentIdx=0;
+let currentIdx=0, sheetIds=[];
+// Lista por la que se navega con las flechas. Si el personaje no está entre los filtrados
+// (p. ej. se abre desde la ficha de un colegio con un filtro puesto), se usa la lista completa.
+function sheetList(){ return sheetIds.map(id=>PERSON_BY_ID[id]).filter(Boolean); }
 function openSheet(id){
-  const list=filtered(); currentIdx=list.findIndex(p=>p.id===id);
-  if(currentIdx<0){ currentIdx=0; }
+  let list=filtered();
+  if(!list.some(p=>p.id===id)) list=DATA;
+  sheetIds=list.map(p=>p.id);
+  currentIdx=Math.max(0, list.findIndex(p=>p.id===id));
   renderSheet();
   showOverlay();
 }
@@ -705,7 +710,7 @@ function closeSheet(){
   if(history.state && history.state.sheet){ try{ history.back(); }catch(e){} }
 }
 window.addEventListener('popstate', ()=>{ hideOverlay(); });
-function stepSheet(delta){ const list=filtered(); if(!list.length) return; currentIdx=(currentIdx+delta+list.length)%list.length; renderSheet(); }
+function stepSheet(delta){ const list=sheetList(); if(!list.length) return; currentIdx=(currentIdx+delta+list.length)%list.length; renderSheet(); }
 
 function qrGrid(seed){
   const h=hashStr(seed); let cells='';
@@ -718,7 +723,7 @@ function qrGrid(seed){
 }
 
 function renderSheet(){
-  const list=filtered();
+  const list=sheetList();
   const p = list.length ? list[currentIdx] : PERSON_BY_ID[DATA[0].id];
   const stats=fakeStats(p.nombre);
   const frase=fraseCelebre(p), curio=curiosidadUno(p);
