@@ -6740,7 +6740,7 @@ buscador.addEventListener('input', () => {
 });
 
 // Botón copiar: decodifica el base64 y lo copia al portapapeles
-document.querySelectorAll('.btn-copiar').forEach(btn => {
+document.querySelectorAll('.btn-copiar:not(.btn-copiar-sem)').forEach(btn => {
   btn.addEventListener('click', async () => {
     try{
       const b64 = btn.getAttribute('data-b64');
@@ -6759,14 +6759,28 @@ document.querySelectorAll('.btn-copiar').forEach(btn => {
 // Botón copiar seminario
 document.querySelectorAll('.btn-copiar-sem').forEach(btn => {
   btn.addEventListener('click', async () => {
-    try{
-      const el = document.getElementById(btn.getAttribute('data-target'));
-      const clone = el.cloneNode(true);
-      clone.querySelectorAll('button,.act-link').forEach(n => n.remove());
-      await navigator.clipboard.writeText(clone.innerText.replace(/\n{3,}/g, '\n\n').trim());
-      const original = btn.textContent; btn.textContent = '✓ Skopiowano'; btn.classList.add('copiado');
+    const el = document.getElementById(btn.getAttribute('data-target'));
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:800px;';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('button,.act-link').forEach(n => n.remove());
+    holder.appendChild(clone); document.body.appendChild(holder);
+    const texto = clone.innerText.replace(/\n{3,}/g, '\n\n').trim();
+    document.body.removeChild(holder);
+    let ok = false;
+    try{ await navigator.clipboard.writeText(texto); ok = true; }catch(e){}
+    if(!ok){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = texto; ta.style.cssText = 'position:fixed;left:-99999px;top:0;';
+        document.body.appendChild(ta); ta.select();
+        ok = document.execCommand('copy'); document.body.removeChild(ta);
+      }catch(e){}
+    }
+    if(ok){
+      const original = btn.textContent; btn.textContent = '✓ Copiado'; btn.classList.add('copiado');
       setTimeout(()=>{ btn.textContent = original; btn.classList.remove('copiado'); }, 1800);
-    }catch(e){ alert('Nie udało się skopiować automatycznie. Zaznacz tekst ręcznie.'); }
+    }else{ alert('Nie udało się skopiować automatycznie. Zaznacz tekst ręcznie.'); }
   });
 });
 </script>
