@@ -105,9 +105,18 @@ label.chk input{width:22px;height:22px}
 .langbar{position:absolute;top:14px;right:16px;z-index:5}
 .langbar select{font:600 15px Inter,sans-serif;padding:8px 10px;border-radius:10px;border:2px solid var(--teal);background:#fff;color:var(--teal)}
 @media print{.langbar{display:none}}
-.dwrap{background:#fff;border-radius:18px;border:2px solid var(--line);overflow:hidden}
-#dsvg{width:100%;height:min(64vh,66.7vw);display:block}
-.dmsg{font-weight:800;font-size:clamp(17px,2.2vw,24px);color:var(--teal);flex:1;min-width:220px}
+.dgrid{display:grid;grid-template-columns:minmax(260px,350px) 1fr;gap:16px;align-items:start}
+.dside .scoreboard{grid-template-columns:1fr;margin-bottom:10px}
+.dside .tm{padding:8px 12px}
+.dside .turn{font-size:clamp(20px,2.2vw,30px);margin:4px 0 10px}
+.dctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.dctl .btn.big{font-size:19px;padding:14px 22px}
+.dwrap{background:#fff;border-radius:18px;border:2px solid var(--line);overflow:hidden;width:min(100%,calc(100vh - 120px));aspect-ratio:1;margin:0 auto}
+#dsvg{width:100%;height:100%;display:block}
+.dmsg{font-weight:800;font-size:clamp(16px,1.8vw,22px);color:var(--teal);margin:12px 0 8px;min-height:2.6em}
+.dlegrow{display:flex;flex-wrap:wrap;gap:6px}
+.dlegrow .catchip{font-size:13px;padding:5px 10px}
+@media (max-width:900px){.dgrid{grid-template-columns:1fr}.dwrap{width:100%}}
 .sq{cursor:default}
 .cand{cursor:pointer;animation:pulse 0.9s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
@@ -163,8 +172,7 @@ label.chk input{width:22px;height:22px}
     <button class="btn ghost" onclick="rollDice()" data-i="btn_dice"></button>
     <label class="star"><input type="checkbox" id="starSq" style="width:22px;height:22px"> <span data-i="chk_star"></span></label>
   </div></div>
-  <div id="digital" style="display:none"><div class="dwrap"><svg id="dsvg" viewBox="0 0 1500 1000" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <div class="tools" style="margin-top:12px"><button class="btn big" id="btnRoll" onclick="dRoll()" data-i="btn_roll"></button><div class="dice" id="dice2">🎲</div><button class="btn big" id="btnCenter" style="display:none;background:var(--terracotta)" onclick="dCenter()" data-i="btn_center"></button><span id="dmsg" class="dmsg"></span></div></div>
+  <div id="digital" style="display:none"><div class="dgrid"><div class="dside" id="dside"><div class="dctl"><button class="btn big" id="btnRoll" onclick="dRoll()" data-i="btn_roll"></button><div class="dice" id="dice2">🎲</div><button class="btn big" id="btnCenter" style="display:none;background:var(--terracotta)" onclick="dCenter()" data-i="btn_center"></button></div><div id="dmsg" class="dmsg"></div><div id="dlegend" class="dlegrow"></div></div><div class="dwrap"><svg id="dsvg" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"></svg></div></div></div>
 </div>
 
 <!-- PREGUNTA -->
@@ -242,6 +250,7 @@ function fmt(str,name){ return str.replace('{t}', `<span>${name}</span>`); }
 function startGame(){
   MODE = document.querySelector('input[name=mode]:checked').value;
   $('manual').style.display = MODE==='digital'?'none':'block'; $('digital').style.display = MODE==='digital'?'block':'none';
+  if(MODE!=='digital'){ const m=$('manual'); m.parentNode.insertBefore($('board'), m); m.parentNode.insertBefore($('turn'), m); }
   const names = [...document.querySelectorAll('#teamIns input')].map(i=>i.value.trim()||UI[LANG].team);
   teams = names.map((n,i)=>({n, col:TEAM_COLORS[i], w:Array(CATS.length).fill(false), ready:false, pos:0}));
   if(MODE==='digital') dBuild();
@@ -288,60 +297,78 @@ function ask(cat, isFinal){
   startTimer(); show('sPregunta');
 }
 
-/* ---------- tablero digital ---------- */
-let SQ = [], dTargets = null, dBusy = false;
-const catOf = i => (i + Math.floor(i/8)) % 8;
-const isStar = i => i % 8 === 0;
+/* ---------- tablero digital (anillo + 4 caminos + centro) ---------- */
+let NODE = [], ADJ = {}, dTargets = null, dBusy = false;
+const NR = 48, HUB = 64, spNode = (k,m)=>48+k*4+(m-1);
+const catOfNode = n => n<48 ? (n + Math.floor(n/6)) % 8 : (((Math.floor((n-48)/4)*12) + Math.floor((12*Math.floor((n-48)/4))/6)) + 3*(((n-48)%4)+1)) % 8;
+const isStarNode = n => n<48 && n%6===0;
 function dBuild(){
-  // puntos equidistantes sobre una elipse
-  const cx=750, cy=500, rx=640, ry=385, M=4800; let pts=[], acc=[0];
-  for(let k=0;k<=M;k++){ const t=k/M*2*Math.PI-Math.PI/2; pts.push([cx+rx*Math.cos(t), cy+ry*Math.sin(t)]); if(k) acc.push(acc[k-1]+Math.hypot(pts[k][0]-pts[k-1][0], pts[k][1]-pts[k-1][1])); }
-  const L = acc[M]; SQ = [];
-  for(let i=0;i<NSQ;i++){ const target = L*i/NSQ; let k=0; while(k<M && acc[k]<target) k++; SQ.push(pts[k]); }
-  let g = `<defs><clipPath id="clipb"><rect width="1500" height="1000" rx="0"/></clipPath></defs><rect width="1500" height="1000" fill="#F5EFE1"/><image href="${MAPBG}" x="0" y="0" width="1500" height="1000" preserveAspectRatio="xMidYMid slice" opacity=".55"/>`;
-  g += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#B8862E" stroke-width="3" stroke-dasharray="4 10"/>`;
-  g += `<g transform="translate(${cx} ${cy})" text-anchor="middle"><circle r="228" fill="rgba(255,255,255,.9)" stroke="#2A2420" stroke-width="3"/><text y="-168" font-size="42" font-family="Cormorant Garamond,Georgia,serif" font-style="italic" font-weight="700" fill="#B5451B">PíasConnect</text><text y="-132" font-size="25" font-family="Cormorant Garamond,Georgia,serif" font-weight="700" fill="#0D2528">Trivial · Escolapios Ilustres</text></g>`;
-  CATS.forEach((c,i)=>{ g += `<g transform="translate(${cx-135} ${cy-98+i*31})"><rect y="-18" width="24" height="24" rx="6" fill="${c.col}" stroke="#2A2420" stroke-width="2"/><text x="34" y="1" font-size="19" font-family="Inter,sans-serif" font-weight="700" fill="#2A2420" class="dleg" data-c="${i}">${c.i} ${c.n}</text></g>`; });
-  SQ.forEach((p,i)=>{ const c=CATS[catOf(i)], s=54; g += `<g class="sq" id="sq${i}" transform="translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})"><rect x="${-s/2}" y="${-s/2}" width="${s}" height="${s}" rx="9" fill="${c.col}" stroke="${isStar(i)?'#8a6d00':'#2A2420'}" stroke-width="${isStar(i)?5:2.5}"/><text y="9" text-anchor="middle" font-size="${isStar(i)?32:28}">${isStar(i)?'⭐':c.i}</text></g>`; });
+  const cx=500, cy=500, R=438; NODE=[]; ADJ={};
+  for(let i=0;i<NR;i++){ const t=i/NR*2*Math.PI-Math.PI/2; NODE[i]=[cx+R*Math.cos(t), cy+R*Math.sin(t)]; }
+  for(let k=0;k<4;k++){ const t=k*Math.PI/2-Math.PI/2; for(let m=1;m<=4;m++){ const r=R-68*m; NODE[spNode(k,m)]=[cx+r*Math.cos(t), cy+r*Math.sin(t)]; } }
+  NODE[HUB]=[cx,cy];
+  const addE=(a,c)=>{ (ADJ[a]=ADJ[a]||[]).push(c); (ADJ[c]=ADJ[c]||[]).push(a); };
+  for(let i=0;i<NR;i++) addE(i,(i+1)%NR);
+  for(let k=0;k<4;k++){ addE(12*k, spNode(k,1)); for(let m=1;m<4;m++) addE(spNode(k,m), spNode(k,m+1)); addE(spNode(k,4), HUB); }
+  let g = `<rect width="1000" height="1000" fill="#F5EFE1"/><image href="${MAPBG}" x="0" y="0" width="1000" height="1000" preserveAspectRatio="xMidYMid slice" opacity=".5"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#B8862E" stroke-width="3" stroke-dasharray="4 9"/>`;
+  for(let k=0;k<4;k++){ const a=NODE[12*k], c=NODE[HUB]; g += `<line x1="${a[0]}" y1="${a[1]}" x2="${c[0]}" y2="${c[1]}" stroke="#B8862E" stroke-width="3" stroke-dasharray="4 9"/>`; }
+  g += `<circle cx="${cx}" cy="${cy}" r="112" fill="rgba(255,255,255,.93)" stroke="#2A2420" stroke-width="4"/><g transform="translate(${cx} ${cy})" text-anchor="middle"><text y="-34" font-size="26" font-family="Cormorant Garamond,Georgia,serif" font-style="italic" font-weight="700" fill="#B5451B">PíasConnect</text><text y="30" font-size="56">🏆</text><text y="62" font-size="15" font-family="Inter,sans-serif" font-weight="800" fill="#0D2528">Trivial</text></g>`;
+  NODE.forEach((p,n)=>{ const c=CATS[catOfNode(n)]; if(n===HUB) return; const star=isStarNode(n), s=n<48?50:52; g += `<g class="sq" id="sq${n}" transform="translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})"><rect x="${-s/2}" y="${-s/2}" width="${s}" height="${s}" rx="9" fill="${c.col}" stroke="${star?'#8a6d00':'#2A2420'}" stroke-width="${star?5:2.5}"/><text y="9" text-anchor="middle" font-size="${star?30:26}">${star?'⭐':c.i}</text></g>`; });
   g += `<g id="dTok"></g>`;
   $('dsvg').innerHTML = g;
+  $('dlegend').innerHTML = CATS.map(c=>`<span class="catchip" style="background:${c.col}">${c.i} ${c.n}</span>`).join('');
+  // mover marcador y turno al panel lateral
+  $('dside').prepend($('turn')); $('dside').prepend($('board'));
   dDraw();
 }
 function dDraw(){
   const byPos = {}; teams.forEach((t,i)=>{ (byPos[t.pos]=byPos[t.pos]||[]).push(i); });
   let h = '';
-  Object.keys(byPos).forEach(pos=>{ const list = byPos[pos], p = SQ[pos], n = list.length; list.forEach((ti,k)=>{ const a = k/n*2*Math.PI - Math.PI/2, r = n>1?17:0; h += `<g transform="translate(${(p[0]+r*Math.cos(a)).toFixed(1)} ${(p[1]+r*Math.sin(a)).toFixed(1)})" style="pointer-events:none"><circle r="${ti===cur?17:14}" fill="${teams[ti].col}" stroke="#fff" stroke-width="${ti===cur?4:3}"/><text y="6" text-anchor="middle" font-size="16" font-weight="800" fill="#fff" font-family="Inter,sans-serif">${ti+1}</text></g>`; }); });
+  Object.keys(byPos).forEach(pos=>{ const list = byPos[pos], p = NODE[pos], n = list.length; list.forEach((ti,k)=>{ const a = k/n*2*Math.PI - Math.PI/2, r = n>1?19:0; h += `<g transform="translate(${(p[0]+r*Math.cos(a)).toFixed(1)} ${(p[1]+r*Math.sin(a)).toFixed(1)})" style="pointer-events:none"><circle r="${ti===cur?20:17}" fill="${teams[ti].col}" stroke="#fff" stroke-width="${ti===cur?5:3}"/><text y="7" text-anchor="middle" font-size="19" font-weight="800" fill="#fff" font-family="Inter,sans-serif">${ti+1}</text></g>`; }); });
   $('dTok').innerHTML = h;
 }
+function dClear(){ document.querySelectorAll('.sq').forEach(e=>{ e.classList.remove('cand'); e.onclick=null; const n=+e.id.slice(2); e.querySelector('rect').setAttribute('stroke', isStarNode(n)?'#8a6d00':'#2A2420'); e.querySelector('rect').setAttribute('stroke-width', isStarNode(n)?5:2.5); }); }
 function dTurn(){
-  const t = teams[cur]; dTargets = null; dBusy = false;
-  document.querySelectorAll('.sq').forEach(e=>{ e.classList.remove('cand'); e.onclick=null; e.querySelector('rect').setAttribute('stroke-width', e.id==='sq0'||(+e.id.slice(2))%8===0?5:2.5); });
-  const done = t.w.every(Boolean);
-  $('btnCenter').style.display = done ? 'inline-block' : 'none';
-  $('btnRoll').disabled = false; $('btnRoll').style.display = done ? 'none' : 'inline-block';
-  $('dmsg').textContent = done ? '' : UI[LANG].d_roll;
-  document.querySelectorAll('.dleg').forEach(e=>{ e.textContent = CATS[+e.dataset.c].i+' '+CATS[+e.dataset.c].n; });
+  const t = teams[cur]; dTargets = null; dBusy = false; dClear();
+  const done = t.w.every(Boolean), atHub = t.pos===HUB;
+  $('btnCenter').style.display = (done && atHub) ? 'inline-block' : 'none';
+  $('btnRoll').style.display = (done && atHub) ? 'none' : 'inline-block'; $('btnRoll').disabled = false;
+  $('dmsg').textContent = (done && atHub) ? '' : UI[LANG].d_roll;
+  $('dlegend').innerHTML = CATS.map(c=>`<span class="catchip" style="background:${c.col}">${c.i} ${c.n}</span>`).join('');
   dDraw();
+}
+function dCands(start, n, complete){
+  const res = {};
+  (function go(node, prev, left, path){
+    if(left===0 || (complete && node===HUB && path.length>1)){ if(node!==start && !(node in res)) res[node] = path.slice(); return; }
+    for(const nx of ADJ[node]){ if(nx===prev) continue; path.push(nx); go(nx, node, left-1, path); path.pop(); }
+  })(start, -1, n, [start]);
+  return res;
 }
 function dRoll(){
   if(dBusy) return; dBusy = true; $('btnRoll').disabled = true;
   const d = $('dice2'); d.classList.remove('roll'); void d.offsetWidth; d.classList.add('roll'); d.textContent = '…';
   setTimeout(()=>{
     const n = 1+Math.floor(Math.random()*6); d.textContent = n;
-    const t = teams[cur], a = (t.pos+n)%NSQ, b = (t.pos-n+NSQ)%NSQ;
-    dTargets = {a, b, n};
-    [a,b].forEach(i=>{ const e = $('sq'+i); e.classList.add('cand'); e.querySelector('rect').setAttribute('stroke','#C0392B'); e.querySelector('rect').setAttribute('stroke-width',7); e.onclick = ()=>dChoose(i); });
+    const t = teams[cur], res = dCands(t.pos, n, t.w.every(Boolean));
+    dTargets = {res, n};
+    Object.keys(res).forEach(k=>{ const e = $('sq'+k); if(!e) return; e.classList.add('cand'); e.querySelector('rect').setAttribute('stroke','#C0392B'); e.querySelector('rect').setAttribute('stroke-width',7); e.onclick = ()=>dChoose(+k); });
     $('dmsg').textContent = UI[LANG].d_choose.replace('{n}', n);
     dBusy = false;
+    if(Object.keys(res).length===1 && Object.keys(res)[0]==HUB){ dChoose(HUB); }
   }, 450);
 }
-function dChoose(i){
+function dChoose(node){
   if(dBusy || !dTargets) return; dBusy = true;
-  const t = teams[cur], dir = (i===dTargets.a) ? 1 : -1, n = dTargets.n;
-  document.querySelectorAll('.sq').forEach(e=>{ e.classList.remove('cand'); e.onclick=null; });
-  let step = 0; const iv = setInterval(()=>{
-    t.pos = (t.pos + dir + NSQ) % NSQ; dDraw(); step++;
-    if(step>=n){ clearInterval(iv); setTimeout(()=>{ dBusy=false; dTargets=null; $('starSq').checked = isStar(t.pos); ask(catOf(t.pos)); }, 350); }
+  const t = teams[cur], path = dTargets.res[node].slice(1); dClear();
+  let k = 0; const iv = setInterval(()=>{
+    t.pos = path[k]; dDraw(); k++;
+    if(k>=path.length){ clearInterval(iv); setTimeout(()=>{
+      dBusy=false; dTargets=null;
+      if(t.pos===HUB){ if(t.w.every(Boolean)){ askFinal(); } else { $('starSq').checked=false; ask(Math.floor(Math.random()*CATS.length)); } }
+      else { $('starSq').checked = isStarNode(t.pos); ask(catOfNode(t.pos)); }
+    }, 350); }
   }, 170);
 }
 function dCenter(){ askFinal(); }
