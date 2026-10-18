@@ -288,9 +288,18 @@ function spin(){
   const iv = setInterval(()=>{ btns.forEach(b=>b.style.outline='none'); const b = btns[Math.floor(Math.random()*btns.length)]; if(b) b.style.outline='6px solid #222'; if(++n>14){ clearInterval(iv); const k = list[Math.floor(Math.random()*list.length)]; $('starSq').checked = true; ask(k); } }, 90);
 }
 function rollDice(){ const d=$('dice'); d.classList.remove('roll'); void d.offsetWidth; d.classList.add('roll'); d.textContent = '…'; setTimeout(()=>{ d.textContent = 1+Math.floor(Math.random()*CATS.length); }, 350); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+let SEEN = {}; try{ SEEN = JSON.parse(localStorage.getItem('trivialSeen')||'{}'); }catch(e){}
+function saveSeen(){ try{ localStorage.setItem('trivialSeen', JSON.stringify(SEEN)); }catch(e){} }
 function nextQ(cat){
-  if(!pool[cat] || !pool[cat].length){ pool[cat] = QS.map((q,i)=>i).filter(i=>QS[i].c===cat).sort(()=>Math.random()-.5); }
-  return QS[pool[cat].pop()];
+  if(!pool[cat] || !pool[cat].length){
+    const ids = QS.map((q,i)=>i).filter(i=>QS[i].c===cat);
+    let fresh = ids.filter(i=>!SEEN[i]);
+    if(!fresh.length){ ids.forEach(i=>{ delete SEEN[i]; }); fresh = ids; }
+    pool[cat] = shuffle(fresh);
+  }
+  const i = pool[cat].pop(); SEEN[i] = 1; saveSeen();
+  return QS[i];
 }
 function ask(cat, isFinal){
   finalMode = !!isFinal;
