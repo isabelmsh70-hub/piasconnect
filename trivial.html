@@ -223,7 +223,7 @@ function applyLang(l){
 }
 $('langSel').innerHTML = LANGLIST.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
 $('langSel').addEventListener('change', e=>applyLang(e.target.value));
-(function(){ let sv=null; try{ sv=localStorage.getItem('trivialLang'); }catch(e){} const nv=(navigator.language||'es').slice(0,2).toLowerCase(); const pick=[sv,nv].find(x=>x && UI[x])||'es'; applyLang(pick); })();
+(function(){ let sv=null; try{ sv=localStorage.getItem('trivialLang'); }catch(e){} const nv=(navigator.language||'es').slice(0,2).toLowerCase(); const qs=(new URLSearchParams(location.search)).get('lang'); const pick=[qs,sv,nv].find(x=>x && UI[x])||'es'; applyLang(pick); })();
 function fmt(str,name){ return str.replace('{t}', `<span>${name}</span>`); }
 
 /* ---------- partida ---------- */
