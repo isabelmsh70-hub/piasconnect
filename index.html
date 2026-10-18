@@ -732,7 +732,7 @@ function filtered(){
     if(state.fam!=='Todas' && p.familia!==state.fam) return false;
     if(!q) return true;
     return (p.nombre+' '+p.colegio+' '+p.especialidad+' '+p.pais).toLowerCase().includes(q);
-  });
+  }).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base',ignorePunctuation:true}));
 }
 
 function portraitInner(p){
