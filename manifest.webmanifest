@@ -1,7 +1,7 @@
 {
   "name": "PíasConnect · Museo digital escolapio",
   "short_name": "PíasConnect",
-  "description": "El Colegio que Inspira: escolapios ilustres de todo el mundo.",
+  "description": "El Colegio que Inspira: alumnos escolapios ilustres de todo el mundo.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
