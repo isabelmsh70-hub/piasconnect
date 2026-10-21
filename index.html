@@ -344,6 +344,15 @@ footer.credit{
 #splash.hide{opacity:0;pointer-events:none}
 @keyframes splashIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 </style>
+<style>
+.scroll-fab{position:fixed;right:12px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:55;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.scroll-fab button{pointer-events:auto;width:42px;height:42px;border-radius:50%;border:1px solid rgba(24,48,71,.18);background:rgba(250,246,237,.82);color:#183047;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:0 3px 10px -3px rgba(0,0,0,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  opacity:0;transform:scale(.7);visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s;-webkit-tap-highlight-color:transparent}
+.scroll-fab button.on{opacity:.85;transform:none;visibility:visible}
+.scroll-fab button:active{opacity:1;transform:scale(.94)}
+.scroll-fab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
 </head>
 <body>
 <div id="splash" aria-hidden="true"><img src="logo-splash.png" alt=""></div>
@@ -1097,6 +1106,38 @@ if("serviceWorker" in navigator){
     }).catch(function(){});
   });
 }
+</script>
+<div class="scroll-fab" id="scrollFab"><button type="button" id="fabUp" aria-label="Subir" title="Subir"><svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg></button><button type="button" id="fabDown" aria-label="Bajar" title="Bajar"><svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg></button></div>
+<script>
+// Botones flotantes para subir al principio / bajar al final (lista o ficha abierta).
+(function(){
+  var up=document.getElementById('fabUp'), down=document.getElementById('fabDown'), ov=document.getElementById('overlay'), tick=false;
+  function pos(){
+    if(ov&&ov.classList.contains('open')) return {top:ov.scrollTop, max:ov.scrollHeight-ov.clientHeight};
+    var de=document.documentElement; return {top:window.pageYOffset||de.scrollTop, max:de.scrollHeight-window.innerHeight};
+  }
+  function update(){
+    tick=false; var p=pos();
+    up.classList.toggle('on',p.top>400);
+    down.classList.toggle('on',p.max-p.top>400);
+  }
+  function req(){ if(!tick){tick=true;requestAnimationFrame(update);} }
+  function go(toEnd){
+    var p=pos(), y=toEnd?p.max:0;
+    if(ov&&ov.classList.contains('open')) ov.scrollTo({top:y,behavior:'smooth'});
+    else window.scrollTo({top:y,behavior:'smooth'});
+  }
+  up.addEventListener('click',function(){go(false);});
+  down.addEventListener('click',function(){go(true);});
+  document.addEventListener('scroll',req,true);
+  window.addEventListener('resize',req);
+  if(ov) new MutationObserver(req).observe(ov,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(req).observe(document.body,{childList:true,subtree:true});
+  var L={es:['Subir','Bajar'],en:['Scroll to top','Scroll to bottom'],it:['Vai su','Vai giù'],fr:['Haut de page','Bas de page'],pl:['Do góry','Na dół'],hu:['Fel','Le']};
+  function lab(){var l=L[(document.documentElement.lang||'es').slice(0,2)]||L.es; up.title=up.ariaLabel=l[0]; down.title=down.ariaLabel=l[1];}
+  lab(); new MutationObserver(lab).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+  update();
+})();
 </script>
 </body>
 </html>
