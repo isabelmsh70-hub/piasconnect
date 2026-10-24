@@ -1185,11 +1185,17 @@ function applyLang(lang, keepView){
   LANG=pick; U=I18N.ui[pick]; DATA=RAW.map(locP); PERSON_BY_ID=Object.fromEntries(DATA.map(p=>[p.id,p]));
   setTimeout(()=>applyLang(pick),0);
 })();
-let tx=null;
-document.getElementById('sheet').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+let tx=null, ty=null, tt=0;
+// Cambio de ficha por gesto: solo si el deslizamiento es claramente horizontal (no al hacer scroll hacia abajo o en diagonal).
+document.getElementById('sheet').addEventListener('touchstart',e=>{
+  if(e.touches.length!==1){tx=null;return;}
+  tx=e.touches[0].clientX; ty=e.touches[0].clientY; tt=Date.now();
+},{passive:true});
+document.getElementById('sheet').addEventListener('touchcancel',()=>{tx=null;},{passive:true});
 document.getElementById('sheet').addEventListener('touchend',e=>{
-  if(tx===null||state.view==='colegios') return; const dx=e.changedTouches[0].clientX-tx; tx=null;
-  if(Math.abs(dx)>70 && document.querySelector('#sheet .nav-btn')) stepSheet(dx<0?1:-1);
+  if(tx===null||state.view==='colegios') return;
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty, dt=Date.now()-tt; tx=null;
+  if(Math.abs(dx)>110 && Math.abs(dy)<45 && Math.abs(dx)>3*Math.abs(dy) && dt<700 && document.querySelector('#sheet .nav-btn')) stepSheet(dx<0?1:-1);
 });
 renderAll();
 </script>
