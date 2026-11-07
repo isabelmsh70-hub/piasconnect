@@ -342,6 +342,7 @@ footer.credit{
 .clase-go{margin-top:auto;font-weight:700;color:var(--ink-blue);font-size:15px;}
 .clase-note{font-size:13px;opacity:.7;}
 .videos-box{max-width:860px;margin:6px auto 14px;}
+.videos-banner{display:block;width:100%;height:auto;border-radius:18px;margin:0 0 16px;border:1px solid var(--line);}
 .videos-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.10);}
 .videos-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
 .videos-actions{display:flex;justify-content:center;margin:18px 0 6px;}
@@ -1164,7 +1165,7 @@ function renderVideos(){
   const w = document.getElementById('videosWrap');
   if(w.dataset.lang === LANG && w.firstChild) return;   // no recargar el reproductor al cambiar de pestaña
   w.dataset.lang = LANG;
-  w.innerHTML = `<div class="videos-box"><div class="videos-frame"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${PLAYLIST_ID}&hl=${LANG}" title="${U.titleVideos}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><div class="videos-actions"><a class="video-btn" href="https://www.youtube.com/playlist?list=${PLAYLIST_ID}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>${U.videosOpen}</a></div><p class="clase-note" style="text-align:center;">${U.videosNote}</p></div>`;
+  w.innerHTML = `<div class="videos-box"><img class="videos-banner" src="videos-banner.jpg" alt="${U.titleVideos}"><div class="videos-frame"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${PLAYLIST_ID}&hl=${LANG}" title="${U.titleVideos}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><div class="videos-actions"><a class="video-btn" href="https://www.youtube.com/playlist?list=${PLAYLIST_ID}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>${U.videosOpen}</a></div><p class="clase-note" style="text-align:center;">${U.videosNote}</p></div>`;
 }
 function renderAll(){ if(state.view==='personajes'){ renderPills(); renderGrid(); } else if(state.view==='destacados'){ renderSections(); } else if(state.view==='clase'){ renderClase(); } else if(state.view==='videos'){ renderVideos(); } else { renderCollegeGrid(); } }
 document.getElementById('searchInput').addEventListener('input', e=>{ state.search=e.target.value; if(state.view==='personajes') renderGrid(); else if(state.view==='destacados') renderSections(); else if(state.view==='colegios') renderCollegeGrid(); });
